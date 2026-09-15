@@ -27,13 +27,14 @@ class Dispute:
     vote_deadline: u64
     challenge_deadline: u64
     outcome: str
-    evidence: DynArray[Evidence]
+    evidence_count: u32
     resolution_reason: str
     challenge_count: u32
 
 
 class DisputeResolver(gl.Contract):
     disputes: TreeMap[u256, Dispute]
+    evidence_store: TreeMap[u256, Evidence]
     next_dispute_id: u256
 
     def __init__(self):
@@ -83,7 +84,7 @@ class DisputeResolver(gl.Contract):
                 + challenge_window_seconds
             ),
             outcome="UNDECIDED",
-            evidence=gl.storage.inmem_allocate(DynArray[Evidence]),
+            evidence_count=u32(0),
             resolution_reason="",
             challenge_count=u32(0),
         )
@@ -104,14 +105,16 @@ class DisputeResolver(gl.Contract):
         if now > dispute.evidence_deadline:
             raise gl.UserError("evidence window has closed")
 
-        dispute.evidence.append(
-            Evidence(
-                submitter=gl.message.sender_address,
-                uri=uri,
-                notes=notes,
-                created_at=now,
-            )
-        )
+        evidence_id = u256(dispute_id * 1000000 + dispute.evidence_count)
+
+self.evidence_store[evidence_id] = Evidence(
+    submitter=gl.message.sender_address,
+    uri=uri,
+    notes=notes,
+    created_at=now,
+)
+
+dispute.evidence_count = u32(dispute.evidence_count + 1)
 
     @gl.public.write
     def close_evidence(self, dispute_id: int) -> None:
@@ -122,16 +125,18 @@ class DisputeResolver(gl.Contract):
             raise gl.UserError("evidence window has not ended")
         dispute.status = "Voting"
 
-    def _evidence_text(self, dispute: Dispute) -> str:
+    def _evidence_text(self, dispute_id: int, dispute: Dispute) -> str:
         parts = [
             f"Claim: {dispute.claim_uri}",
             f"Party A: {dispute.party_a.as_hex}",
             f"Party B: {dispute.party_b.as_hex}",
         ]
-        for index, item in enumerate(dispute.evidence):
-            parts.append(
-                f"Evidence {index + 1}: URI={item.uri}; notes={item.notes}"
-            )
+        for index in range(dispute.evidence_count):
+    evidence_id = u256(dispute_id * 1000000 + index)
+    item = self.evidence_store[evidence_id]
+    parts.append(
+        f"Evidence {index + 1}: URI={item.uri}; notes={item.notes}"
+    )
         return "\n".join(parts)
 
     @gl.public.write
@@ -143,10 +148,10 @@ class DisputeResolver(gl.Contract):
             raise gl.UserError("dispute must be in Voting state")
         if now < dispute.vote_deadline:
             raise gl.UserError("voting window has not ended")
-        if len(dispute.evidence) == 0:
+        if dispute.evidence_count == 0:
             raise gl.UserError("at least one evidence item is required")
 
-        evidence_text = self._evidence_text(dispute)
+        evidence_text = self._evidence_text(dispute_id, dispute)
         claim_uri = dispute.claim_uri
 
         def leader_fn():
@@ -250,14 +255,16 @@ Your outcome must be your independent judgment.
         if now >= dispute.challenge_deadline:
             raise gl.UserError("challenge window has ended")
 
-        dispute.evidence.append(
-            Evidence(
-                submitter=gl.message.sender_address,
-                uri=challenge_uri,
-                notes="Challenge evidence",
-                created_at=now,
-            )
-        )
+        evidence_id = u256(dispute_id * 1000000 + dispute.evidence_count)
+
+self.evidence_store[evidence_id] = Evidence(
+    submitter=gl.message.sender_address,
+    uri=challenge_uri,
+    notes="Challenge evidence",
+    created_at=now,
+)
+
+dispute.evidence_count = u32(dispute.evidence_count + 1)
         dispute.challenge_count = u32(dispute.challenge_count + 1)
         dispute.status = "Voting"
         dispute.vote_deadline = u64(now + 300)
