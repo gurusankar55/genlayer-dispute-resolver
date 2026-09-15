@@ -4,9 +4,26 @@ A reusable **dispute resolution contract primitive** that finalizes outcomes via
 **multi-validator consensus**, with clear state design, evidence windows, voting,
 and a challenge period before finalization.
 
-This repo provides an educational, standalone reference implementation in
-TypeScript to demonstrate **consensus-driven resolution logic** that can be
-ported into a real GenLayer Intelligent Contract environment.
+This repository contains a deployed GenLayer Intelligent Contract implementation
+of a reusable dispute resolution primitive.
+
+The main on-chain implementation is:
+`contracts/dispute_resolver.py`
+
+The contract uses explicit state transitions, evidence submission,
+validator-based consensus, a challenge window, and finalization.
+
+### Deployed GenLayer Contract
+
+- Network: GenLayer Studio
+- Contract: `dispute_resolver.py`
+- Address: `0x779A72354d232f32670e31b7b71Db6E915A8054D`
+- Explorer:
+  https://explorer-studio.genlayer.com/address/0x779A72354d232f32670e31b7b71Db6E915A8054D
+
+The TypeScript files in `src/` provide a reference/demo implementation,
+while `contracts/dispute_resolver.py` is the GenLayer Intelligent Contract
+used for deployment.
 
 ---
 
@@ -29,12 +46,17 @@ This primitive focuses on:
 
 ## How consensus is used
 
-Validators independently review the dispute claim + submitted evidence and cast a vote.
+The contract uses GenLayer's nondeterministic execution and validator
+equivalence checking to evaluate the dispute claim and submitted evidence.
 
-Consensus rule in this implementation:
-- **Supermajority threshold** (default: 2/3 of votes cast)
-- If an outcome reaches threshold → dispute becomes **Resolved**
-- After a **challenge window** ends → dispute becomes **Finalized**
+The `resolve(...)` method:
+- generates an evidence-grounded proposed outcome
+- independently validates the proposed outcome
+- accepts only a valid matching outcome
+- transitions the dispute to **Resolved**
+
+After the challenge window ends, `finalize(...)` transitions the dispute
+to **Finalized**.
 
 This is stronger than “AI decides X” demos because:
 - results require multi-validator agreement
@@ -62,12 +84,13 @@ Each dispute has:
 
 ## Key functions
 
-- `openDispute(...)`
-- `submitEvidence(...)`
-- `closeEvidenceAndStartVoting(...)`
-- `castVote(...)`
-- `resolve(...)` (applies supermajority threshold)
-- `finalize(...)` (locks after challenge window)
+- `open_dispute(...)` — creates a dispute and opens the evidence window
+- `submit_evidence(...)` — adds evidence during the evidence window
+- `close_evidence(...)` — transitions the dispute to Voting
+- `resolve(...)` — performs GenLayer consensus evaluation
+- `challenge(...)` — adds challenge evidence and reopens voting
+- `finalize(...)` — locks the resolved dispute after the challenge window
+- `get_dispute(...)`, `get_status(...)`, `get_outcome(...)`, `get_evidence_count(...)` — read methods
 
 ---
 
