@@ -83,7 +83,7 @@ class DisputeResolver(gl.Contract):
                 + challenge_window_seconds
             ),
             outcome="UNDECIDED",
-            evidence=DynArray[Evidence](),
+            evidence=gl.storage.inmem_allocate(DynArray[Evidence]),
             resolution_reason="",
             challenge_count=u32(0),
         )
