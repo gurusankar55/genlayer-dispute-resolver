@@ -1,0 +1,30 @@
+{
+  "name": "genlayer-claim-verifier",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+
+ "scripts": {
+  "dev": "tsx src/demo.ts",
+  "test": "vitest run",
+  "test:watch": "vitest"
+},
+"repository": {
+    "type": "git",
+    "url": "git+https://github.com/gurusankar55/genlayer-claim-verifier.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/gurusankar55/genlayer-claim-verifier/issues"
+  },
+  "homepage": "https://github.com/gurusankar55/genlayer-claim-verifier#readme",
+  "devDependencies": {
+    "@types/node": "^26.5.1",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0"
+  }
+}
